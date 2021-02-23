@@ -1,0 +1,128 @@
+#! /bin/sh
+
+##
+# focus = BTRFS clues
+#	check if Btrfs used for root filesystem
+#	check if Btrfs snapshots exist
+#		check if snapper cli exists
+#			create a status of recent snapshots
+#			create a diff of recent snapshots
+##
+
+# Configuration
+
+	# core command for more clues
+	coreCMD="snapper"
+
+##
+# Functions
+##
+
+# preliminary hint-to-clue indentification
+function identify {
+
+  echo "#-- identify" >>${LF}
+  echo "### ${entryCMD}" >>${LF}
+
+  # preliminary validation of btrfs for root filesytem
+  if ${entryCMD} filesystem show / >>${LF} 2>&1
+    then
+        if which ${coreCMD} >/dev/null 2>&1 
+	  then
+		status="true" && echo "## status=${status}" >>${LF}
+	fi
+    else
+	status="false" && echo "## status=${status}" >>${LF}
+  fi
+}
+
+# setup clue focus folder
+function setup {
+
+  echo "#-- setup" >>${LF}
+
+  # create working directory
+  mkdir -p ${collectionDir}/${reportTimestamp}/${focus}
+
+}
+
+# acquire potential clues (since last run)
+function acquire {
+
+  echo "#-- acquire" >>${LF}
+
+  # get list of snapshots, strip ones older than previous run
+  cmdReview="${coreCMD} --iso list"
+  echo "### $cmdReview (see ${collectionDir}/${reportTimestamp}/${focus}/${cmdReview})" >>${LF}
+  ${cmdReview} >${collectionDir}/${reportTimestamp}/${focus}/${cmdReview} 2>>${LF}
+  while read line
+    do
+	    datestamp=$(echo ${line} | awk -F'|' '{print $4}' | awk '{print $1}')
+	    timestamp=$(echo ${line} | awk -F'|' '{print $4}' | awk '{print $2}')
+	    if echo ${datestamp} | grep ^[0-9] >/dev/null 2>&1
+	      then
+	    	thisTimestamp="$(date -d ${datestamp}T${timestamp} +%s)"
+	      else
+	        thisTimestamp="0"
+	    fi
+	    if [ ${thisTimestamp} -lt ${lastTimestamp} ]
+	      then
+		lastSnap="$(echo ${line} | awk -F'|' '{print $1}' | xargs)"
+	    fi
+    done < ${collectionDir}/${reportTimestamp}/${focus}/${cmdReview}
+}
+
+# parse/investigate clues for details
+function evaluate {
+
+  echo "#-- evaluate" >>${LF}
+
+  # compare snapshots, strip ones older than previous run
+  prevSnap=${lastSnap}
+  while read line
+    do
+	snap="$(echo ${line} | awk -F'|' '{print $1}' | xargs | cut -f1 -d'*')"
+	if echo ${snap} | grep ^[0-9] >/dev/null 2>&1
+	  then
+		if [ ${snap} -gt ${lastSnap} -a ${prevSnap} -lt ${snap} ]
+		  then
+			cmdDelta="${coreCMD} status ${prevSnap}..${snap}"
+			echo "### $cmdDelta (see ${collectionDir}/${reportTimestamp}/${focus}/${cmdDelta})" >>${LF}
+			touch "${collectionDir}/${reportTimestamp}/${focus}/${cmdDelta}"
+			${cmdDelta} >>${collectionDir}/${reportTimestamp}/${focus}/${cmdDelta} 2>>${LF}
+			cmdDelta="${coreCMD} diff ${prevSnap}..${snap}"
+			echo "### $cmdDelta (see ${collectionDir}/${reportTimestamp}/${focus}/${cmdDelta})" >>${LF}
+			touch "${collectionDir}/${reportTimestamp}/${focus}/${cmdDelta}"
+			${cmdDelta} >>${collectionDir}/${reportTimestamp}/${focus}/${cmdDelta} 2>>${LF}
+			prevSnap="${snap}"
+		fi
+	  fi
+    done < ${collectionDir}/${reportTimestamp}/${focus}/${cmdReview}
+  
+}
+
+# cleanup empty clue sets
+function cleanup {
+
+  echo "#-- cleanup" >>${LF}
+
+  #[ -z "${cmdDelta}" ] && \
+	#rm -f "${collectionDir}/${reportTimestamp}/${focus}/${cmdReview}" >/dev/null 2>&1
+  find ${collectionDir}/${reportTimestamp}/${focus} -type f -size 0c -exec rm -f {} \;
+
+}
+
+# save clue summary
+function admission {
+
+  echo "#-- admission" >>${LF}
+
+  count=$(ls ${collectionDir}/${reportTimestamp}/${focus} | wc -l 2>&1)
+  if [ ${count} -gt 1 ]
+    then
+	echo "${focus}:${count}" >>${collectionDir}/${reportTimestamp}/${reportFile}
+    #else
+	#rm -rf ${collectionDir}/${reportTimestamp}/${focus} >/dev/null 2>&1
+  fi
+
+}

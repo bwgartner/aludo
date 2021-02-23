@@ -1,0 +1,96 @@
+#! /bin/sh
+
+##
+# aludo
+#
+#	Capture hints of incremental changes to help
+#	trigger data collection, leading to a support
+#	assessment.
+#
+#	NOTE: Translation from Esperanto to English -> hint
+##
+
+# Invocation
+#	should be run as root (or via sudo)
+if [ "$UID" != "0" ]
+  then
+	echo "Requires root (or sudo) privileges to run $0" >&2
+        exit 1
+fi
+
+# Initialize key names
+export focus=""
+export entryCMD=""
+export status=""
+
+# Configuration parameters / files
+#CF=/usr/etc/aludo.conf
+#[ -r ${CF} ] && source ${CF}
+#CF=/etc/aludo.conf
+#[ -r ${CF} ] && source ${CF}
+CF=./aludo.conf
+[ -r ${CF} ] && source ${CF}
+
+# If clues/hints are found, group into a given timestamp location
+#	compared to a previous run
+export reportTimestamp=$(date +"%Y-%m-%dT%H:%M:%S")
+export runTimestamp=$(date -d ${reportTimestamp} +%s)
+echo ${reportTimestamp} ${runTimestamp}
+
+# Prepare collection directory
+if [ -d ${collectionDir} ]
+  then
+	if [ $(ls ${collectionDir} | wc -l 2>/dev/null) -ne 0 ]
+	  then
+		export lastTimestamp=$(date -d `ls ${collectionDir} | tail -1` +%s)
+		export prevDate=$(echo ${lastTimestamp} | cut -f1 -d'T')
+        	export prevTime=$(echo ${lastTimestamp} | cut -f2 -d'T')
+	  else
+		export lastTimestamp=0
+		export prevDate=0
+		export prevTime=0
+        fi
+  else
+	mkdir -p ${collectionDir}
+fi
+mkdir -p ${collectionDir}/${reportTimestamp}
+export LF="${collectionDir}/${reportTimestamp}/${logFile}" && \
+	touch ${LF}
+echo "Hints" > ${collectionDir}/${reportTimestamp}/${reportFile}
+
+##
+# look for Btrfs clues
+##
+  focus="btrfs" && \
+	  echo "# ===== Focus =====" >>${LF} && \
+	  echo "# ${focus}" >>${LF}
+  entryCMD="btrfs"
+  if which ${entryCMD} >/dev/null 2>&1 && grep ${entryCMD} /etc/fstab >/dev/null 2>&1
+    then
+	status=maybe && echo "## status=${status}" >>${LF}
+	source ${functionDir}/indico/${focus}
+	identify
+	if [ ${status} = "true" ] 
+	  then
+	    setup
+	    acquire
+	    evaluate
+	    cleanup
+	    admission
+	fi
+  fi
+
+# gather relevant evidence 
+hints=$(cat ${collectionDir}/${reportTimestamp}/${reportFile} | wc -l 2>&1)
+if [ ${hints} -gt 1 ]
+  then
+	cd ${collectionDir}
+	ln -s ${reportTimestamp} ${runTimestamp}
+
+        # gather supportconfig
+	which supportconfig >/dev/null 2>&1 && supportconfig -R ${runTimestamp} >>${LF} 2>&1
+	
+	# bundle results
+	tar -czf ${runTimestamp}.tgz ${runTimestamp}/* >>${LF} 2>&1
+fi
+
