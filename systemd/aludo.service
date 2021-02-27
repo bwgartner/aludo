@@ -1,0 +1,6 @@
+[Unit]
+Description=Collector looking for hints of system changes and issues
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/sh -c '/usr/sbin/aludo'

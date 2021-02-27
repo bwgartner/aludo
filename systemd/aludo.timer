@@ -1,0 +1,8 @@
+[Unit]
+Description=Run aludo.service every 4 hours at 32 minute mark
+
+[Timer]
+OnCalendar=00/4:32
+
+[Install] 
+WantedBy=basic.target
