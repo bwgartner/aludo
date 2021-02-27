@@ -3,12 +3,22 @@
 ##
 # aludo
 #
-#	Capture hints of incremental changes to help
-#	trigger data collection, leading to a support
-#	assessment.
+#	Capture notable clues of incremental system changes
+#	to help trigger data collection, as a hint to lead
+#	to a later support assessment
 #
-#	NOTE: Translation from Esperanto to English -> hint
+#	NOTE: Translate aludo from Esperanto to English -> hint
 ##
+
+# Usage
+#	
+#if [ "$1" = "--help" ] || \
+#	[ "$1" = "help" ] || \
+#	[ "$1" = "-h" ] || \
+#  then
+#        echo "Usage: `basename $0` [ -v | --verbose ]"
+#        exit 1
+#fi
 
 # Invocation
 #	should be run as root (or via sudo)
@@ -18,21 +28,21 @@ if [ "$UID" != "0" ]
         exit 1
 fi
 
-# Initialize key names
+# Initialize key names/values
 export focus=""
 export entryCMD=""
 export status=""
 
 # Configuration parameters / files
-#CF=/usr/etc/aludo.conf
-#[ -r ${CF} ] && source ${CF}
-#CF=/etc/aludo.conf
-#[ -r ${CF} ] && source ${CF}
+CF=/usr/etc/aludo.conf
+[ -r ${CF} ] && source ${CF}
+CF=/etc/aludo.conf
+[ -r ${CF} ] && source ${CF}
 CF=./aludo.conf
 [ -r ${CF} ] && source ${CF}
 
 # If clues/hints are found, group into a given timestamp location
-#	compared to a previous run
+#	comparing as deltas to a previous run
 export reportTimestamp=$(date +"%Y-%m-%dT%H:%M:%S")
 export runTimestamp=$(date -d ${reportTimestamp} +%s)
 echo ${reportTimestamp} ${runTimestamp}
@@ -59,31 +69,36 @@ export LF="${collectionDir}/${reportTimestamp}/${logFile}" && \
 echo "Hints" > ${collectionDir}/${reportTimestamp}/${reportFile}
 
 ##
-# look for Btrfs clues
+# look for clues
 ##
-  focus="btrfs" && \
-	  echo "# ===== Focus =====" >>${LF} && \
-	  echo "# ${focus}" >>${LF}
-  entryCMD="btrfs"
-  if which ${entryCMD} >/dev/null 2>&1 && grep ${entryCMD} /etc/fstab >/dev/null 2>&1
-    then
-	status=maybe && echo "## status=${status}" >>${LF}
-	source ${functionDir}/indico/${focus}
-	identify
-	if [ ${status} = "true" ] 
+for focus in $(ls ${functionDir})
+  do
+	echo "# ===== Focus =====" >>${LF} && \
+	echo "# ${focus}" >>${LF}
+  	entryCMD="${focus}"
+  	if which ${entryCMD} >/dev/null 2>&1 && grep ${entryCMD} /etc/fstab >/dev/null 2>&1
 	  then
-	    setup
-	    acquire
-	    evaluate
-	    cleanup
-	    admission
+		status=maybe && echo "## status=${status}" >>${LF}
+		source ${functionDir}/${focus}
+		identify
+		if [ ${status} = "true" ] 
+		  then
+			setup
+			acquire
+			evaluate
+			cleanup
+			admission
+		fi
 	fi
-  fi
+  done		
 
-# gather relevant evidence 
+# gather relevant clues/evidence 
 hints=$(cat ${collectionDir}/${reportTimestamp}/${reportFile} | wc -l 2>&1)
 if [ ${hints} -gt 1 ]
   then
+	echo "See ... "
+	echo "- Hints :"
+       	echo "  ${collectionDir}/${reportTimestamp}/${reportFile}"
 	cd ${collectionDir}
 	ln -s ${reportTimestamp} ${runTimestamp}
 
@@ -91,6 +106,15 @@ if [ ${hints} -gt 1 ]
 	which supportconfig >/dev/null 2>&1 && supportconfig -R ${runTimestamp} >>${LF} 2>&1
 	
 	# bundle results
-	tar -czf ${runTimestamp}.tgz ${runTimestamp}/* >>${LF} 2>&1
-fi
+	tar -czf ${runTimestamp}.tgz ${runTimestamp}/* >>${LF} 2>&1 && \
+		echo "- Log File :"
+		echo "  ${LF}" && \
+		echo "- Collected Data :"
+      	 	echo "  ${collectionDir}/${runTimestamp}.tgz"
+  else
+	echo "No recent hints found, review ..." >/dev/stderr
+	echo "- Log File :" >/dev/stderr
+	echo "  ${LF}" >/dev/stderr
+	exit 1
 
+fi
