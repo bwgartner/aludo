@@ -1,0 +1,112 @@
+
+##
+# Focus Clue :
+#	                       __                          __   __
+#	   _____ __  __ _____ / /_ ___   ____ ___   _____ / /_ / /
+#	  / ___// / / // ___// __// _ \ / __ `__ \ / ___// __// / 
+#	 (__  )/ /_/ /(__  )/ /_ /  __// / / / / // /__ / /_ / /  
+#	/____/ \__, //____/ \__/ \___//_/ /_/ /_/ \___/ \__//_/   
+#	      /____/                                            
+#
+#	check for status output(s)
+#		check if journalctl cli exists
+#			capture delta of priority journal entries
+##
+
+# Configuration
+
+	# core command for more clues
+	coreCMD="journalctl"
+
+##
+# Functions
+##
+
+# preliminary hint-to-clue indentification
+function identify {
+
+  echo "#-- identify" >>${LF}
+  echo "### ${entryCMD}" >>${LF}
+
+  # preliminary validation of systemctl
+  if ${entryCMD} list-machines >>${LF} 2>&1
+    then
+
+        if which ${coreCMD} >/dev/null 2>&1 
+	  then
+		status="true" && echo "## status=${status}" >>${LF}
+	fi
+    else
+	status="false" && echo "## status=${status}" >>${LF}
+  fi
+
+}
+
+# setup clue focus folder
+function setup {
+
+  echo "#-- setup" >>${LF}
+
+  # create working directory
+  mkdir -p ${oDir}/${focus}
+
+}
+
+# acquire potential clues (since last run)
+function acquire {
+
+  echo "#-- acquire" >>${LF}
+
+  # entryCMD collection
+  for option in \
+	"status" \
+	"list-units" \
+	"list-sockets" \
+	"list-timers"
+    do
+	cmdReview="${entryCMD} ${option}"
+	${cmdReview} > ${oDir}/${focus}/${cmdReview} 2>&1
+    done
+
+  # coreCMD collection
+  #cmdReview=(${coreCMD} --all --priority=${journalctlPriority} --since=\"${prevTSdate} ${prevTStime}\")
+  cmdReview="${coreCMD} --all --priority=${journalctlPriority} --since=@${prevTS}"
+  echo "### ${cmdReview}" >>${LF}
+  ${cmdReview} >${oDir}/${focus}/${cmdReview} 2>>${LF}
+
+}
+
+# parse/investigate clues for details
+function evaluate {
+
+  echo "#-- evaluate" >>${LF}
+
+  # compare snapshots, strip ones older than previous run
+  #if ! grep -i -e emerg -e alert -e crit -e err -e warning ${oDir}/${focus}/${cmdReview} >/dev/null 2>&1
+    #then
+	#rm -f ${oDir}/${focus}/${cmdReview}
+  #fi
+
+}
+
+# cleanup empty clue sets
+function cleanup {
+
+  echo "#-- cleanup" >>${LF}
+
+  find ${oDir}/${focus} -type f -size 0c -exec rm -f {} \;
+
+}
+
+# save clue summary
+function admission {
+
+  echo "#-- admission" >>${LF}
+
+  count=$(ls ${oDir}/${focus}/${coreCMD}* | wc -l 2>&1)
+  if [ ${count} -ge 1 ]
+    then
+	echo "${focus}:${count}" >>${oDir}/${reportFile}
+  fi
+
+}
