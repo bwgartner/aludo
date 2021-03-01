@@ -1,0 +1,39 @@
+##
+# Helper function(s)
+#	   __   _                         __                         
+#	  / /_ (_)____ ___   ___   _____ / /_ ____ _ ____ ___   ____ 
+#	 / __// // __ `__ \ / _ \ / ___// __// __ `// __ `__ \ / __ \
+#	/ /_ / // / / / / //  __/(__  )/ /_ / /_/ // / / / / // /_/ /
+#	\__//_//_/ /_/ /_/ \___//____/ \__/ \__,_//_/ /_/ /_// .___/ 
+#	                                                    /_/
+#
+#	Create and deal with various timestamp formats
+#		for this utility runs and previous ones
+#		and for various clue and underlying content
+##
+
+function currentTS {
+
+  # use ISO 8601 or seconds since 1970 (per date command)
+  export runTSISO=$(date +"%Y-%m-%dT%H:%M:%S")
+  export runTS=$(date -d ${runTSISO} +%s)
+  export runTSdate=$(echo ${runTSISO} | cut -f1 -dT)
+  export runTStime=$(echo ${runTSISO} | cut -f2 -dT)
+
+}
+
+function pastTS {
+
+  export prevTSISO=$(ls ${outputDir} | grep "T" | tail -1)
+
+  if [ -z "${prevTSISO}" ]
+    then
+	    export prevTSISO="1970-01-01T00:00:00"
+  fi
+
+  export prevTS=$(date -d ${prevTSISO} +%s)
+  export prevTSdate=$(echo ${prevTSISO} | cut -f1 -d'T')
+  export prevTStime=$(echo ${prevTSISO} | cut -f2 -d'T')
+
+}
+

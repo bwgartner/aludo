@@ -1,0 +1,39 @@
+##
+# Helper function(s)
+#
+#	                __ __             __   _             
+#	  _____ ____   / // /___   _____ / /_ (_)____   ____ 
+#	 / ___// __ \ / // // _ \ / ___// __// // __ \ / __ \
+#	/ /__ / /_/ // // //  __// /__ / /_ / // /_/ // / / /
+#	\___/ \____//_//_/ \___/ \___/ \__//_/ \____//_/ /_/ 
+#
+#	Setup various directories/files
+#		for output, logs, reports, 
+##
+
+function outDir {
+
+  # prepare collection directory
+  export mID=$(cat /etc/machine-id)
+  [ -d ${collectionDir}/${mID} ] || mkdir -p ${collectionDir}/${mID}
+  export outputDir="${collectionDir}/${mID}"
+
+}
+
+function artifacts {
+# prep various output artifacts for this run
+
+  # use the currrent run timestamp as parent
+  mkdir -p ${outputDir}/${runTSISO} && \
+  	export oDir="${outputDir}/${runTSISO}"
+
+  # prep the log/report files
+  export LF="${oDir}/${logFile}" && \
+  	echo "#### aludo ############################" > ${LF} && \
+       	echo "     Current Run  : ${runTSISO}" >>${LF} && \
+       	echo "     Previous Run : ${prevTSISO}" >>${LF} && \
+	echo "#######################################" >> ${LF}
+  export RF="${oDir}/${reportFile}" && \
+  	echo "Hints" > ${RF}
+
+}
