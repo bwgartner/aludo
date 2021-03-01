@@ -28,58 +28,38 @@ if [ "$UID" != "0" ]
         exit 1
 fi
 
-# Initialize key names/values
-export focus=""
-export entryCMD=""
-export status=""
-
 # Configuration parameters / files
-CF=/usr/etc/aludo.conf
-[ -r ${CF} ] && source ${CF}
-CF=/etc/aludo.conf
-[ -r ${CF} ] && source ${CF}
-CF=./aludo.conf
-[ -r ${CF} ] && source ${CF}
+  CF=/usr/etc/aludo.conf
+  [ -r ${CF} ] && source ${CF}
+  CF=/etc/aludo.conf
+  [ -r ${CF} ] && source ${CF}
+  CF=./aludo.conf
+  [ -r ${CF} ] && source ${CF}
 
-# If clues/hints are found, group into a given timestamp location
-#	comparing as deltas to a previous run
-export reportTimestamp=$(date +"%Y-%m-%dT%H:%M:%S")
-export runTimestamp=$(date -d ${reportTimestamp} +%s)
-echo ${reportTimestamp} ${runTimestamp}
-
-# Prepare collection directory
-if [ -d ${collectionDir} ]
-  then
-	if [ $(ls ${collectionDir} | wc -l 2>/dev/null) -ne 0 ]
-	  then
-		export lastTimestamp=$(date -d `ls ${collectionDir} | tail -1` +%s)
-		export prevDate=$(echo ${lastTimestamp} | cut -f1 -d'T')
-        	export prevTime=$(echo ${lastTimestamp} | cut -f2 -d'T')
-	  else
-		export lastTimestamp=0
-		export prevDate=0
-		export prevTime=0
-        fi
-  else
-	mkdir -p ${collectionDir}
-fi
-mkdir -p ${collectionDir}/${reportTimestamp}
-export LF="${collectionDir}/${reportTimestamp}/${logFile}" && \
-	touch ${LF}
-echo "Hints" > ${collectionDir}/${reportTimestamp}/${reportFile}
+# Source and use helper functions
+  [ -r ${functionDir}/helper/collection ] && \
+	source ${functionDir}/helper/collection
+  [ -r ${functionDir}/helper/timestamp ] && \
+	source ${functionDir}/helper/timestamp
+  # prepare/adapt collection space
+    outDir
+  # get needed timestamps (current, previous)
+    currentTS
+    pastTS
+  # prepopulate output artifacts
+    artifacts
 
 ##
 # look for clues
 ##
-for focus in $(ls ${functionDir})
+for focus in $(ls ${functionDir}/indico)
   do
-	echo "# ===== Focus =====" >>${LF} && \
-	echo "# ${focus}" >>${LF}
+	echo "# ===== Clue Focus : ${focus} =====" >>${LF} && \
   	entryCMD="${focus}"
-  	if which ${entryCMD} >/dev/null 2>&1 && grep ${entryCMD} /etc/fstab >/dev/null 2>&1
+  	if which ${entryCMD} >/dev/null 2>&1 
 	  then
 		status=maybe && echo "## status=${status}" >>${LF}
-		source ${functionDir}/${focus}
+		source ${functionDir}/indico/${focus}
 		identify
 		if [ ${status} = "true" ] 
 		  then
@@ -89,28 +69,34 @@ for focus in $(ls ${functionDir})
 			cleanup
 			admission
 		fi
+	  else
+		status="false"
 	fi
   done		
 
 # gather relevant clues/evidence 
-hints=$(cat ${collectionDir}/${reportTimestamp}/${reportFile} | wc -l 2>&1)
-if [ ${hints} -gt 1 ]
+if [ $(cat ${RF} | wc -l 2>&1) -gt 1 ]
   then
+	cd ${outputDir}
 	echo "See ... "
 	echo "- Hints :"
-       	echo "  ${collectionDir}/${reportTimestamp}/${reportFile}"
-	cd ${collectionDir}
-	ln -s ${reportTimestamp} ${runTimestamp}
+       	echo "  ${RF}"
+	ln -s ${runTSISO} ${runTS}
 
         # gather supportconfig
-	which supportconfig >/dev/null 2>&1 && supportconfig -R ${runTimestamp} >>${LF} 2>&1
+	cmd="supportconfig"
+	echo "# ===== collect dataset via ${cmd}" >>${LF} && \
+	which supportconfig >/dev/null 2>&1 && supportconfig -R ${runTSISO} >>${LF} 2>&1
 	
 	# bundle results
-	tar -czf ${runTimestamp}.tgz ${runTimestamp}/* >>${LF} 2>&1 && \
+	cd ${collectionDir}
+	cmd="tar"
+	echo "# ===== bundle data/hints/clue via ${cmd}" >>${LF} && \
+		tar -czf ${mID}-${runTS}.tgz ${mID}/${runTS}/* >/dev/null 2>&1 && \
 		echo "- Log File :"
 		echo "  ${LF}" && \
 		echo "- Collected Data :"
-      	 	echo "  ${collectionDir}/${runTimestamp}.tgz"
+      	 	echo "  ${collectionDir}/${mID}-${runTS}.tgz"
   else
 	echo "No recent hints found, review ..." >/dev/stderr
 	echo "- Log File :" >/dev/stderr
