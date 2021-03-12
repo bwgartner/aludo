@@ -39,8 +39,12 @@ fi
 # Source and use helper functions
   [ -r ${functionDir}/helper/collection ] && \
 	source ${functionDir}/helper/collection
+  [ -r ./helper/collection ] && \
+	source ./helper/collection
   [ -r ${functionDir}/helper/timestamp ] && \
 	source ${functionDir}/helper/timestamp
+  [ -r ./helper/timestamp ] && \
+	source ./helper/timestamp
   # prepare/adapt collection space
     outDir
   # get needed timestamps (current, previous)
@@ -52,14 +56,19 @@ fi
 ##
 # look for clues
 ##
-for focus in $(ls ${functionDir}/indico)
+for focus in \
+	$([ -d ${functionDir}/indico ] && ls ${functionDir}/indico)\
+        $([ -d ./indico ] && ls ./indico)
   do
 	echo "# ===== Clue Focus : ${focus} =====" >>${LF} && \
   	entryCMD="${focus}"
   	if which ${entryCMD} >/dev/null 2>&1 
 	  then
 		status=maybe && echo "## status=${status}" >>${LF}
-		source ${functionDir}/indico/${focus}
+		[ -r ${functionDir}/indico/${focus} ] && \
+			source ${functionDir}/indico/${focus}
+		[ -r ./indico/${focus} ] && \
+			source ./indico/${focus}
 		identify
 		if [ ${status} = "true" ] 
 		  then
