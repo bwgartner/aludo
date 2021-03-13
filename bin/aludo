@@ -57,7 +57,7 @@ fi
 # look for clues
 ##
 for focus in \
-	$([ -d ${functionDir}/indico ] && ls ${functionDir}/indico)\
+	$([ -d ${functionDir}/indico ] && ls ${functionDir}/indico) \
         $([ -d ./indico ] && ls ./indico)
   do
 	echo "# ===== Clue Focus : ${focus} =====" >>${LF} && \

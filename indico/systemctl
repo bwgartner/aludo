@@ -82,9 +82,9 @@ function evaluate {
   echo "#-- evaluate" >>${LF}
 
   # compare snapshots, strip ones older than previous run
-  if ! grep -i -e emerg -e alert -e crit -e err -e warning ${oDir}/${focus}/${cmdReview} >/dev/null 2>&1
+  if ! grep -i -e emerg -e alert -e crit -e err -e warning "${oDir}/${focus}/${cmdReview}" >/dev/null 2>&1
     then
-	rm -f ${oDir}/${focus}/${cmdReview}
+	rm -f "${oDir}/${focus}/${cmdReview}"
   fi
 
 }
