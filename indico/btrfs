@@ -72,6 +72,8 @@ function acquire {
 	    if [ ${thisTimestamp} -lt ${prevTS} ]
 	      then
 		lastSnap="$(echo ${line} | awk -F'|' '{print $1}' | xargs)"
+	      else
+		lastSnap=0
 	    fi
     done < ${oDir}/${focus}/${cmdReview}
 }
