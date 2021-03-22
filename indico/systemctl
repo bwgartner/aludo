@@ -103,7 +103,7 @@ function admission {
 
   echo "#-- admission" >>${LF}
 
-  count=$(ls ${oDir}/${focus}/${coreCMD}* | wc -l 2>&1)
+  count=$(ls ${oDir}/${focus} | grep -v ${entryCMD} | wc -l 2>&1)
   if [ ${count} -ge 1 ]
     then
 	echo "${focus}:${count}" >>${oDir}/${reportFile}
