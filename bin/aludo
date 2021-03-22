@@ -45,6 +45,10 @@ fi
 	source ${functionDir}/helper/timestamp
   [ -r ./helper/timestamp ] && \
 	source ./helper/timestamp
+  [ -r ${functionDir}/helper/transport ] && \
+	source ${functionDir}/helper/transport
+  [ -r ./helper/transport ] && \
+	source ./helper/transport
   # prepare/adapt collection space
     outDir
   # get needed timestamps (current, previous)
@@ -92,24 +96,44 @@ if [ $(cat ${RF} | wc -l 2>&1) -gt 1 ]
        	echo "  ${RF}"
 	ln -s ${runTSISO} ${runTS}
 
-        # gather supportconfig
+        # gather auxilliary supportconfig output
 	cmd="supportconfig"
 	echo "# ===== collect dataset via ${cmd}" >>${LF} && \
-	which supportconfig >/dev/null 2>&1 && supportconfig -R ${runTSISO} >>${LF} 2>&1
-	
+	if which supportconfig >/dev/null 2>&1
+	  then
+		supportconfig -R ${runTSISO} >>${LF} 2>&1
+	  else
+		echo "suggest installation of supportutils package" >/dev/stderr
+	fi
+
 	# bundle results
 	cd ${collectionDir}
 	cmd="tar"
 	echo "# ===== bundle data/hints/clue via ${cmd}" >>${LF} && \
-		tar -czf ${mID}-${runTS}.tgz ${mID}/${runTS}/* >/dev/null 2>&1 && \
-		echo "- Log File :"
-		echo "  ${LF}" && \
-		echo "- Collected Data :"
-      	 	echo "  ${collectionDir}/${mID}-${runTS}.tgz"
+		${cmd} -czf ${mID}-${runTS}.tgz ${mID}/${runTS}/* >/dev/null 2>&1 && \
+		echo "- Log File :" && \
+		echo "  ${LF}"
   else
 	echo "No recent hints found, review ..." >/dev/stderr
 	echo "- Log File :" >/dev/stderr
 	echo "  ${LF}" >/dev/stderr
 	exit 1
+fi
+
+# if allowed, transport result bundle to another location
+xfer=$(echo ${transport} | tr '[:upper:]' '[:lower:]')
+if [ ${xfer} = "y" ] || [ ${transport} = "yes" ] 
+  then
+  	if which ${transportCMD} >/dev/null 2>&1 
+	  then
+		echo "# ===== transport results via ${transportCMD}to ${transportURI}" >>${LF} && \
+		xfer_${transportCMD}
+	  else
+		echo "Unable to utilize transportCMD : ${transportCMD}" >/dev/stderr
+		exit 1
+	fi
+  else
+	echo "- Collected Data :"
+	echo "  ${collectionDir}/${mID}-${runTS}.tgz"
 
 fi

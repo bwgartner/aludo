@@ -1,0 +1,43 @@
+##
+# Helper function(s)
+#	   __                                         __ 
+#	  / /__________ _____  _________  ____  _____/ /_
+#	 / __/ ___/ __ `/ __ \/ ___/ __ \/ __ \/ ___/ __/
+#	/ /_/ /  / /_/ / / / (__  ) /_/ / /_/ / /  / /_  
+#	\__/_/   \__,_/_/ /_/____/ .___/\____/_/   \__/  
+#	                        /_/    
+#
+#	Move result bundle to another destination
+#		for this utility runs and previous ones
+#		and for various clue and underlying content
+##
+
+function xfer_cp {
+
+  # validate destination
+  if [ -d ${transportURI} ] 
+    then
+	testOut=aludo$$
+	if touch ${transportURI}/${testOut} >/dev/null 2>&1
+	  then
+		rm -f ${transportURI}/${testOut} >/dev/null 2>&1
+		if ${transportCMD} -p \
+			${collectionDir}/${mID}-${runTS}.tgz \
+			${transportURI}/ >/dev/null 2>&1
+		  then
+			cmp -s ${collectionDir}/${mID}-${runTS}.tgz ${transportURI}/${mID}-${runTS}.tgz && {
+				echo "- Collected Data :"
+                		echo "  ${transportURI}/${mID}-${runTS}.tgz"
+				rm -f ${collectionDir}/${mID}-${runTS}.tgz >/dev/null 2>&1
+			}
+		fi
+	  else
+		echo "Unable to populate ${transportURI}" >/dev/stderr
+		exit 1
+	fi
+    else
+	echo "Unable to use directory : ${transportURI}" >/dev/stderr
+	exit 1
+  fi
+}
+
