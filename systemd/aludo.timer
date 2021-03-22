@@ -2,6 +2,14 @@
 Description=Run aludo.service every 4 hours at 32 minute mark
 
 [Timer]
+### see systemd.time
+## first Saturday of every month at given time
+# OnCalendar=Sat *-*-1..7 18:00:00
+## weekly (default of 12:00am on Monday)
+# OnCalendar=weekly
+## every day at 4am
+# OnCalendar=*-*-* 4:00:00
+## every 4 hours, at 32 mins past top of hour
 OnCalendar=00/4:32
 
 [Install] 
