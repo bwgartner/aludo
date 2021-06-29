@@ -1,5 +1,5 @@
 workflow:
   steps:
     - branch_package:
-        source_project: home:bwgartner:fb
+        source_project: home:bwgartner:SCA
         source_package: aludo
