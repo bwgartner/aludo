@@ -10,7 +10,10 @@ From this source code repo:
 - sudo ./bin/aludo
   - then review the cited Log/Report (and the collected data bundle)
 
-Or for packaged-based (RPM) for openSUSE/SUSE, see [OBS](https://build.opensuse.org/package/show/home:bwgartner/aludo)
+Or for packaged-based (RPM) for openSUSE/SUSE, see [OBS](https://build.opensuse.org/package/show/home:bwgartner:SCA/aludo)
 - this has suggested package dependencies
+  - supportutils
+  - btrfsprogs snapper
+  - systemd
 - provides systemd.timers for regular runs (still need to be systemctl enabled)
 
